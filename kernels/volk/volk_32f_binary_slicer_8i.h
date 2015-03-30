@@ -111,7 +111,55 @@ volk_32f_binary_slicer_8i_generic_branchless(int8_t* cVector, const float* aVect
 #endif /* LV_HAVE_GENERIC */
 
 
+#ifdef LV_HAVE_AVX2
+#include <immintrin.h>
+
+static inline void
+volk_32f_binary_slicer_8i_a_avx2(int8_t* cVector, const float* aVector,
+                                 unsigned int num_points)
+{
+  int8_t* cPtr = cVector;
+  const float* aPtr = aVector;
+  unsigned int number = 0;
+
+  for(number = 0; number < n16points; number++) {
+    a0_val = _mm256_load_ps(aPtr);
+    a1_val = _mm256_load_ps(aPtr+8);
+    a2_val = _mm256_load_ps(aPtr+16);
+    a3_val = _mm256_load_ps(aPtr+24);
+
+    // compare >= 0; return float
+    res0_f = _mm25_cmp_ps(a0_val, zero_val, 13);
+    res1_f = _mm25_cmp_ps(a1_val, zero_val, 13);
+    res2_f = _mm25_cmp_ps(a2_val, zero_val, 13);
+    res3_f = _mm25_cmp_ps(a3_val, zero_val, 13);
+
+    // convert to 32i and >> 31
+    res0_i = _mm256_srli_epi32(_mm256_cvtps_epi32(res0_f), 31);
+    res1_i = _mm256_srli_epi32(_mm256_cvtps_epi32(res1_f), 31);
+    res2_i = _mm256_srli_epi32(_mm256_cvtps_epi32(res2_f), 31);
+    res3_i = _mm256_srli_epi32(_mm256_cvtps_epi32(res3_f), 31);
+
+    // pack in to 16-bit results
+    res0_i = _mm256_packs_epi32(res0_i, res1_i);
+    res2_i = _mm256_packs_epi32(res2_i, res3_i);
+    // res0:
+    //  a0, a1, a2, a3, b0, b1, b2, b3, a4, a5, a6, a7, b4, b5, b6, b7
+    // res1:
+    //  c0, c1, c2, c3, d0, d1, d2, d3, c4, c5, c6, c7, d4, d5, d6, d7
+    res0_i = _mm256_packs_epi16(res0_i, res2_i);
+    // pack in to 8-bit results
+    // res0:
+    //  a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3, d0, d1, d2, d3
+    //  a4, a5, a6, a7, b4, b5, b6, b7, c4, c5, c6, c7, d4, d5, d6, d7
+
+
+  }
+}
+
 #ifdef LV_HAVE_SSE2
+
+#endif
 #include <emmintrin.h>
 
 static inline void
